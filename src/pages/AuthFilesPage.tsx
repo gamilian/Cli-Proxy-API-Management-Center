@@ -48,6 +48,15 @@ import { useAuthFilesPrefixProxyEditor } from '@/features/authFiles/hooks/useAut
 import { useAuthFilesStats } from '@/features/authFiles/hooks/useAuthFilesStats';
 import { useAuthFilesStatusBarCache } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
 import { readAuthFilesUiState, writeAuthFilesUiState } from '@/features/authFiles/uiState';
+import {
+  ANTIGRAVITY_CONFIG,
+  CLAUDE_CONFIG,
+  CODEX_CONFIG,
+  GEMINI_CLI_CONFIG,
+  KIRO_CONFIG,
+  KIMI_CONFIG,
+  useQuotaLoader,
+} from '@/components/quota';
 import { useAuthStore, useNotificationStore, useThemeStore, useQuotaStore } from '@/stores';
 import type { AuthFileItem } from '@/types';
 import styles from './AuthFilesPage.module.scss';
@@ -117,6 +126,63 @@ export function AuthFilesPage() {
   } = useQuotaStore();
 
   const statusBarCache = useAuthFilesStatusBarCache(files, usageDetails);
+
+  const { loadQuota: loadAntigravityQuota } = useQuotaLoader(ANTIGRAVITY_CONFIG);
+  const { loadQuota: loadClaudeQuota } = useQuotaLoader(CLAUDE_CONFIG);
+  const { loadQuota: loadCodexQuota } = useQuotaLoader(CODEX_CONFIG);
+  const { loadQuota: loadGeminiCliQuota } = useQuotaLoader(GEMINI_CLI_CONFIG);
+  const { loadQuota: loadKiroQuota } = useQuotaLoader(KIRO_CONFIG);
+  const { loadQuota: loadKimiQuota } = useQuotaLoader(KIMI_CONFIG);
+
+  const [refreshingQuota, setRefreshingQuota] = useState(false);
+
+  const handleRefreshFilteredQuotas = useCallback(async () => {
+    if (refreshingQuota) return;
+    setRefreshingQuota(true);
+    try {
+      const activeFiles = files.filter((f) => !f.disabled && !isRuntimeOnlyAuthFile(f));
+
+      const refreshConfig = [
+        { key: 'antigravity', config: ANTIGRAVITY_CONFIG, loader: loadAntigravityQuota },
+        { key: 'claude', config: CLAUDE_CONFIG, loader: loadClaudeQuota },
+        { key: 'codex', config: CODEX_CONFIG, loader: loadCodexQuota },
+        { key: 'gemini-cli', config: GEMINI_CLI_CONFIG, loader: loadGeminiCliQuota },
+        { key: 'kiro', config: KIRO_CONFIG, loader: loadKiroQuota },
+        { key: 'kimi', config: KIMI_CONFIG, loader: loadKimiQuota },
+      ];
+
+      const tasks = refreshConfig
+        .filter(({ key }) => filter === 'all' || filter === key)
+        .map(({ config, loader }) => {
+          const targets = activeFiles.filter(config.filterFn);
+          return loader(targets, 'all', () => {});
+        });
+
+      if (tasks.length > 0) {
+        await Promise.allSettled(tasks);
+        showNotification(
+          t('auth_files.refresh_quota_success', { defaultValue: 'Quota refreshed' }),
+          'success'
+        );
+      }
+    } catch (err) {
+      console.error('Failed to refresh filtered quotas:', err);
+    } finally {
+      setRefreshingQuota(false);
+    }
+  }, [
+    files,
+    filter,
+    refreshingQuota,
+    loadAntigravityQuota,
+    loadClaudeQuota,
+    loadCodexQuota,
+    loadGeminiCliQuota,
+    loadKiroQuota,
+    loadKimiQuota,
+    showNotification,
+    t,
+  ]);
 
   const {
     excluded,
@@ -520,6 +586,15 @@ export function AuthFilesPage() {
         title={titleNode}
         extra={
           <div className={styles.headerActions}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleRefreshFilteredQuotas}
+              disabled={loading || refreshingQuota}
+              loading={refreshingQuota}
+            >
+              {t('auth_files.refresh_quota_button', { defaultValue: '刷新额度' })}
+            </Button>
             <Button variant="secondary" size="sm" onClick={handleHeaderRefresh} disabled={loading}>
               {t('common.refresh')}
             </Button>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type RefObj
 import { useTranslation } from 'react-i18next';
 import { authFilesApi } from '@/services/api';
 import { apiClient } from '@/services/api/client';
-import { useNotificationStore } from '@/stores';
+import { useNotificationStore, useQuotaStore } from '@/stores';
 import type { AuthFileItem } from '@/types';
 import { formatFileSize } from '@/utils/format';
 import { MAX_AUTH_FILE_SIZE } from '@/utils/constants';
@@ -10,6 +10,7 @@ import { downloadBlob } from '@/utils/download';
 import {
   getTypeLabel,
   hasAuthFileStatusMessage,
+  hasAuthFileQuotaError,
   isRuntimeOnlyAuthFile,
 } from '@/features/authFiles/constants';
 
@@ -254,10 +255,23 @@ export function useAuthFilesData(options: UseAuthFilesDataOptions): UseAuthFiles
               setFiles((prev) => prev.filter((file) => isRuntimeOnlyAuthFile(file)));
               deselectAll();
             } else {
+              const quotaState = useQuotaStore.getState();
               const filesToDelete = files.filter((file) => {
                 if (isRuntimeOnlyAuthFile(file)) return false;
                 if (isFiltered && file.type !== filter) return false;
-                if (isProblemOnly && !hasAuthFileStatusMessage(file)) return false;
+                if (isProblemOnly) {
+                  const hasMessage = hasAuthFileStatusMessage(file);
+                  const fileName = file.name;
+                  const hasQuotaError =
+                    hasAuthFileQuotaError(quotaState.antigravityQuota[fileName]) ||
+                    hasAuthFileQuotaError(quotaState.claudeQuota[fileName]) ||
+                    hasAuthFileQuotaError(quotaState.codexQuota[fileName]) ||
+                    hasAuthFileQuotaError(quotaState.geminiCliQuota[fileName]) ||
+                    hasAuthFileQuotaError(quotaState.kiroQuota[fileName]) ||
+                    hasAuthFileQuotaError(quotaState.kimiQuota[fileName]);
+
+                  if (!hasMessage && !hasQuotaError) return false;
+                }
                 return true;
               });
 

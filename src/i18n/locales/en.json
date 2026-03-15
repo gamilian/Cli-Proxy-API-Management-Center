@@ -574,7 +574,9 @@
     "prefix_proxy_invalid_json": "This auth file is not a JSON object, so fields cannot be edited.",
     "prefix_proxy_saved_success": "Updated auth file \"{{name}}\" successfully",
     "quota_refresh_success": "Quota refreshed for \"{{name}}\"",
-    "quota_refresh_failed": "Failed to refresh quota for \"{{name}}\": {{message}}"
+    "quota_refresh_failed": "Failed to refresh quota for \"{{name}}\": {{message}}",
+    "refresh_quota_button": "Refresh Quota",
+    "refresh_quota_success": "Successfully refreshed relevant credential quotas"
   },
   "antigravity_quota": {
     "title": "Antigravity Quota",

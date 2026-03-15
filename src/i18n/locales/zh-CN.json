@@ -574,7 +574,9 @@
     "prefix_proxy_invalid_json": "该认证文件不是 JSON 对象，无法编辑字段。",
     "prefix_proxy_saved_success": "已更新认证文件 \"{{name}}\"",
     "quota_refresh_success": "已刷新 \"{{name}}\" 的额度",
-    "quota_refresh_failed": "刷新 \"{{name}}\" 的额度失败：{{message}}"
+    "quota_refresh_failed": "刷新 \"{{name}}\" 的额度失败：{{message}}",
+    "refresh_quota_button": "刷新额度",
+    "refresh_quota_success": "已刷新对应凭证额度"
   },
   "antigravity_quota": {
     "title": "Antigravity 额度",
