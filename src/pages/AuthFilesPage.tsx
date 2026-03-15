@@ -134,55 +134,6 @@ export function AuthFilesPage() {
   const { loadQuota: loadKiroQuota } = useQuotaLoader(KIRO_CONFIG);
   const { loadQuota: loadKimiQuota } = useQuotaLoader(KIMI_CONFIG);
 
-  const [refreshingQuota, setRefreshingQuota] = useState(false);
-
-  const handleRefreshFilteredQuotas = useCallback(async () => {
-    if (refreshingQuota) return;
-    setRefreshingQuota(true);
-    try {
-      const activeFiles = files.filter((f) => !f.disabled && !isRuntimeOnlyAuthFile(f));
-
-      const refreshConfig = [
-        { key: 'antigravity', config: ANTIGRAVITY_CONFIG, loader: loadAntigravityQuota },
-        { key: 'claude', config: CLAUDE_CONFIG, loader: loadClaudeQuota },
-        { key: 'codex', config: CODEX_CONFIG, loader: loadCodexQuota },
-        { key: 'gemini-cli', config: GEMINI_CLI_CONFIG, loader: loadGeminiCliQuota },
-        { key: 'kiro', config: KIRO_CONFIG, loader: loadKiroQuota },
-        { key: 'kimi', config: KIMI_CONFIG, loader: loadKimiQuota },
-      ];
-
-      const tasks = refreshConfig
-        .filter(({ key }) => filter === 'all' || filter === key)
-        .map(({ config, loader }) => {
-          const targets = activeFiles.filter(config.filterFn);
-          return loader(targets, 'all', () => {});
-        });
-
-      if (tasks.length > 0) {
-        await Promise.allSettled(tasks);
-        showNotification(
-          t('auth_files.refresh_quota_success', { defaultValue: 'Quota refreshed' }),
-          'success'
-        );
-      }
-    } catch (err) {
-      console.error('Failed to refresh filtered quotas:', err);
-    } finally {
-      setRefreshingQuota(false);
-    }
-  }, [
-    files,
-    filter,
-    refreshingQuota,
-    loadAntigravityQuota,
-    loadClaudeQuota,
-    loadCodexQuota,
-    loadGeminiCliQuota,
-    loadKiroQuota,
-    loadKimiQuota,
-    showNotification,
-    t,
-  ]);
 
   const {
     excluded,
@@ -389,6 +340,58 @@ export function AuthFilesPage() {
     () => pageItems.filter((file) => !isRuntimeOnlyAuthFile(file)),
     [pageItems]
   );
+
+  const [refreshingQuota, setRefreshingQuota] = useState(false);
+
+  const handleRefreshFilteredQuotas = useCallback(async () => {
+    if (refreshingQuota) return;
+    setRefreshingQuota(true);
+    try {
+      // Only refresh active files on the current page
+      const activePageFiles = pageItems.filter((f) => !f.disabled && !isRuntimeOnlyAuthFile(f));
+
+      const refreshConfig = [
+        { key: 'antigravity', config: ANTIGRAVITY_CONFIG, loader: loadAntigravityQuota },
+        { key: 'claude', config: CLAUDE_CONFIG, loader: loadClaudeQuota },
+        { key: 'codex', config: CODEX_CONFIG, loader: loadCodexQuota },
+        { key: 'gemini-cli', config: GEMINI_CLI_CONFIG, loader: loadGeminiCliQuota },
+        { key: 'kiro', config: KIRO_CONFIG, loader: loadKiroQuota },
+        { key: 'kimi', config: KIMI_CONFIG, loader: loadKimiQuota },
+      ];
+
+      const tasks = refreshConfig
+        .filter(({ key }) => filter === 'all' || filter === key)
+        .map(({ config, loader }) => {
+          const targets = activePageFiles.filter(config.filterFn);
+          return targets.length > 0 ? loader(targets, 'all', () => {}) : null;
+        })
+        .filter(Boolean);
+
+      if (tasks.length > 0) {
+        await Promise.allSettled(tasks);
+        showNotification(
+          t('auth_files.refresh_quota_success', { defaultValue: 'Quota refreshed' }),
+          'success'
+        );
+      }
+    } catch (err) {
+      console.error('Failed to refresh filtered quotas:', err);
+    } finally {
+      setRefreshingQuota(false);
+    }
+  }, [
+    pageItems,
+    filter,
+    refreshingQuota,
+    loadAntigravityQuota,
+    loadClaudeQuota,
+    loadCodexQuota,
+    loadGeminiCliQuota,
+    loadKiroQuota,
+    loadKimiQuota,
+    showNotification,
+    t,
+  ]);
   const selectedNames = useMemo(() => Array.from(selectedFiles), [selectedFiles]);
 
   const showDetails = (file: AuthFileItem) => {
