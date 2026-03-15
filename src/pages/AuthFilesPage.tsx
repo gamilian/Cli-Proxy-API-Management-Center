@@ -712,7 +712,6 @@ export function AuthFilesPage() {
                 disableControls={disableControls}
                 deleting={deleting}
                 statusUpdating={statusUpdating}
-                quotaFilterType={quotaFilterType}
                 keyStats={keyStats}
                 statusBarCache={statusBarCache}
                 onShowModels={showModels}

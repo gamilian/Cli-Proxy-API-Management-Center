@@ -13,5 +13,5 @@ All notable changes to this project will be documented in this file.
 - Updated `AuthFilesPage` UI to include the new refresh action.
 - Refined `useAuthFilesData` hook to better handle session-level invalid tokens.
 
-### Localization
-- Added new translation keys for quota refresh actions in both Chinese (`zh-CN.json`) and English (`en.json`).
+### Fixed
+- **Quota Display in "All" View**: Fixed a bug where quota information was hidden when the filter was set to "All". Now all supported credentials display their quota status in all views.
