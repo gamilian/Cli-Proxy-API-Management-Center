@@ -29,6 +29,7 @@ import {
   getTypeColor,
   getTypeLabel,
   hasAuthFileStatusMessage,
+  hasAuthFileQuotaError,
   isRuntimeOnlyAuthFile,
   normalizeProviderKey,
   type QuotaProviderType,
@@ -47,7 +48,7 @@ import { useAuthFilesPrefixProxyEditor } from '@/features/authFiles/hooks/useAut
 import { useAuthFilesStats } from '@/features/authFiles/hooks/useAuthFilesStats';
 import { useAuthFilesStatusBarCache } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
 import { readAuthFilesUiState, writeAuthFilesUiState } from '@/features/authFiles/uiState';
-import { useAuthStore, useNotificationStore, useThemeStore } from '@/stores';
+import { useAuthStore, useNotificationStore, useThemeStore, useQuotaStore } from '@/stores';
 import type { AuthFileItem } from '@/types';
 import styles from './AuthFilesPage.module.scss';
 
@@ -105,6 +106,15 @@ export function AuthFilesPage() {
     batchSetStatus,
     batchDelete,
   } = useAuthFilesData({ refreshKeyStats });
+
+  const {
+    antigravityQuota,
+    claudeQuota,
+    codexQuota,
+    geminiCliQuota,
+    kiroQuota,
+    kimiQuota,
+  } = useQuotaStore();
 
   const statusBarCache = useAuthFilesStatusBarCache(files, usageDetails);
 
@@ -254,10 +264,34 @@ export function AuthFilesPage() {
     return Array.from(types);
   }, [files]);
 
-  const filesMatchingProblemFilter = useMemo(
-    () => (problemOnly ? files.filter(hasAuthFileStatusMessage) : files),
-    [files, problemOnly]
-  );
+  const filesMatchingProblemFilter = useMemo(() => {
+    if (!problemOnly) return files;
+    return files.filter((file) => {
+      // 1. Check backend status message
+      if (hasAuthFileStatusMessage(file)) return true;
+
+      // 2. Check current quota fetch errors (real-time consistency)
+      const fileName = file.name;
+      const hasError =
+        hasAuthFileQuotaError(antigravityQuota[fileName]) ||
+        hasAuthFileQuotaError(claudeQuota[fileName]) ||
+        hasAuthFileQuotaError(codexQuota[fileName]) ||
+        hasAuthFileQuotaError(geminiCliQuota[fileName]) ||
+        hasAuthFileQuotaError(kiroQuota[fileName]) ||
+        hasAuthFileQuotaError(kimiQuota[fileName]);
+
+      return hasError;
+    });
+  }, [
+    files,
+    problemOnly,
+    antigravityQuota,
+    claudeQuota,
+    codexQuota,
+    geminiCliQuota,
+    kiroQuota,
+    kimiQuota,
+  ]);
 
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = { all: filesMatchingProblemFilter.length };
